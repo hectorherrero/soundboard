@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Soundboard — Play Your Sounds</title>
+    <meta name="description" content="A lightweight browser soundboard. Assign audio files to buttons and trigger them instantly." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Header -->
+    <header id="app-header">
+      <div class="header-inner">
+        <div class="header-brand">
+          <span class="header-icon" aria-hidden="true">🎛️</span>
+          <h1 class="header-title">Soundboard</h1>
+        </div>
+        <p class="header-subtitle">Click a button to play &bull; Press <kbd>+</kbd> to add sounds</p>
+      </div>
+    </header>
+
+    <!-- Main content -->
+    <main id="app-main">
+      <!-- Empty state (shown when no buttons) -->
+      <div id="empty-state" class="empty-state" aria-live="polite">
+        <div class="empty-icon" aria-hidden="true">🔈</div>
+        <p class="empty-title">No sounds yet</p>
+        <p class="empty-sub">Click the <strong>+</strong> button to add your first sound</p>
+      </div>
+
+      <!-- Button grid -->
+      <div id="button-grid" role="list" aria-label="Soundboard buttons"></div>
+    </main>
+
+    <!-- Floating Action Button -->
+    <button id="add-btn" class="fab" aria-label="Add a new sound button" title="Add sound">
+      <span class="fab-icon" aria-hidden="true">+</span>
+    </button>
+
+    <!-- Add Sound Modal -->
+    <dialog id="add-dialog" aria-labelledby="dialog-title" aria-modal="true">
+      <div class="dialog-card">
+        <header class="dialog-header">
+          <h2 id="dialog-title" class="dialog-title">Add New Sound</h2>
+          <button id="dialog-close" class="dialog-close-btn" aria-label="Close dialog">&times;</button>
+        </header>
+
+        <form id="add-form" novalidate>
+          <!-- Label field -->
+          <div class="form-group">
+            <label class="form-label" for="sound-label">Button Label</label>
+            <input
+              id="sound-label"
+              class="form-input"
+              type="text"
+              placeholder="e.g. Air Horn, Boom, Laugh…"
+              maxlength="30"
+              autocomplete="off"
+              required
+            />
+            <span class="form-error" id="label-error" role="alert"></span>
+          </div>
+
+          <!-- File field -->
+          <div class="form-group">
+            <label class="form-label" for="sound-file">Audio File</label>
+            <div class="file-drop-zone" id="file-drop-zone">
+              <input
+                id="sound-file"
+                class="file-input"
+                type="file"
+                accept="audio/*"
+                required
+              />
+              <div class="file-drop-content">
+                <span class="file-drop-icon" aria-hidden="true">🎵</span>
+                <span class="file-drop-text" id="file-drop-text">Choose or drop an audio file</span>
+                <span class="file-drop-hint">MP3, OGG, WAV, M4A…</span>
+              </div>
+            </div>
+            <span class="form-error" id="file-error" role="alert"></span>
+          </div>
+
+          <!-- Emoji picker (optional visual) -->
+          <div class="form-group">
+            <label class="form-label" for="sound-emoji">Emoji (optional)</label>
+            <input
+              id="sound-emoji"
+              class="form-input emoji-input"
+              type="text"
+              placeholder="🔊"
+              maxlength="2"
+              autocomplete="off"
+            />
+          </div>
+
+          <!-- Large file warning -->
+          <div id="size-warning" class="size-warning" hidden>
+            ⚠️ Large file detected (&gt;5 MB). Storage may be limited.
+          </div>
+
+          <!-- Actions -->
+          <div class="dialog-actions">
+            <button type="button" id="cancel-btn" class="btn btn-ghost">Cancel</button>
+            <button type="submit" id="submit-btn" class="btn btn-primary">Add Sound</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>

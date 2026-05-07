@@ -118,6 +118,10 @@
       </div>
     </dialog>
 
+    <!-- Cross-Origin Isolation via Service Worker — enables SharedArrayBuffer -->
+    <!-- Must be the FIRST script. Page auto-reloads once on first visit. -->
+    <script src="coi-serviceworker.js"></script>
+
     <!-- ffmpeg.wasm v0.11.6 (single-threaded UMD — no COOP/COEP headers needed) -->
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
     <script src="app.js"></script>

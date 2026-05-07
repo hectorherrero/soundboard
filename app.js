@@ -76,6 +76,9 @@ const fileError = document.getElementById('file-error');
 const sizeWarning = document.getElementById('size-warning');
 const buttonGrid = document.getElementById('button-grid');
 const emptyState = document.getElementById('empty-state');
+const amrProgressWrap = document.getElementById('amr-progress-wrap');
+const amrProgressBar = document.getElementById('amr-progress-bar');
+const amrProgressLabel = document.getElementById('amr-progress-label');
 
 /* ============================================================
    TASK 7 — Modal Open / Close Logic
@@ -190,14 +193,34 @@ function isValidAudioFile(file) {
 }
 
 /**
- * Lazily loads ffmpeg.wasm and returns the FFmpeg instance.
- * Uses the lightweight single-threaded core (no SharedArrayBuffer required).
- * @returns {Promise<object>} FFmpeg instance
+ * Shows the AMR conversion progress bar with the given label and progress (0–1).
+ * @param {string} label
+ * @param {number} ratio  0..1
+ */
+function showProgress(label, ratio) {
+  amrProgressWrap.hidden = false;
+  amrProgressLabel.textContent = label;
+  // ratio from ffmpeg can be slightly > 1; clamp it
+  const pct = Math.min(100, Math.round(ratio * 100));
+  amrProgressBar.style.width = pct + '%';
+  amrProgressBar.setAttribute('aria-valuenow', pct);
+}
+
+/** Hides the progress bar and resets it. */
+function hideProgress() {
+  amrProgressWrap.hidden = true;
+  amrProgressBar.style.width = '0%';
+  amrProgressLabel.textContent = '';
+}
+
+/**
+ * Lazily creates and loads an ffmpeg instance (v0.11.x UMD API).
+ * The global `FFmpeg` object is provided by the ffmpeg.min.js script tag.
+ * @returns {Promise<object>} ffmpeg instance
  */
 async function loadFfmpeg() {
   if (_ffmpegInstance) return _ffmpegInstance;
   if (_ffmpegLoading) {
-    // Wait for in-progress load
     await new Promise(resolve => {
       const check = setInterval(() => {
         if (!_ffmpegLoading) { clearInterval(check); resolve(); }
@@ -208,18 +231,12 @@ async function loadFfmpeg() {
 
   _ffmpegLoading = true;
   try {
-    // Use the single-threaded build — no COOP/COEP headers required
-    const coreURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js';
-    const wasmURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm';
-
-    const { FFmpeg } = await import('https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js');
-    const { toBlobURL } = await import('https://unpkg.com/@ffmpeg/util@0.12.1/dist/esm/index.js');
-
-    const ff = new FFmpeg();
-    await ff.load({
-      coreURL: await toBlobURL(coreURL, 'text/javascript'),
-      wasmURL: await toBlobURL(wasmURL, 'application/wasm'),
+    const { createFFmpeg } = FFmpeg; // global from UMD script
+    const ff = createFFmpeg({
+      log: false,
+      corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
     });
+    await ff.load();
     _ffmpegInstance = ff;
     return ff;
   } finally {
@@ -228,30 +245,40 @@ async function loadFfmpeg() {
 }
 
 /**
- * Converts an AMR audio file to WAV using ffmpeg.wasm.
- * @param {File} file - The AMR file to convert
- * @param {function(string): void} onStatus - Callback for status text updates
- * @returns {Promise<File>} A new File object containing WAV audio
+ * Converts an AMR audio file to WAV using ffmpeg.wasm (v0.11.x API).
+ * Shows progress in the progress bar while working.
+ * @param {File} file
+ * @returns {Promise<File>} WAV file
  */
-async function convertAmrToWav(file, onStatus) {
-  onStatus('⏳ Cargando convertidor de audio…');
+async function convertAmrToWav(file) {
+  showProgress('Cargando convertidor de audio…', 0);
+
   const ff = await loadFfmpeg();
 
-  // Write input file to ffmpeg virtual FS
-  const inputName = 'input' + '.' + file.name.split('.').pop();
-  const arrayBuffer = await file.arrayBuffer();
-  await ff.writeFile(inputName, new Uint8Array(arrayBuffer));
+  // Wire up real-time progress: ffmpeg emits ratio 0–1 during transcode
+  ff.setProgress(({ ratio }) => {
+    if (ratio > 0) {
+      showProgress('Convirtiendo AMR a WAV…', ratio);
+    }
+  });
 
-  onStatus('🔄 Convirtiendo AMR a WAV…');
-  await ff.exec(['-i', inputName, '-ar', '44100', '-ac', '1', 'output.wav']);
+  const { fetchFile } = FFmpeg;
+  const ext = file.name.split('.').pop();
+  const inputName = 'input.' + ext;
 
-  const data = await ff.readFile('output.wav');
+  showProgress('Leyendo archivo…', 0.05);
+  ff.FS('writeFile', inputName, await fetchFile(file));
+
+  showProgress('Convirtiendo AMR a WAV…', 0.1);
+  await ff.run('-i', inputName, '-ar', '44100', '-ac', '1', 'output.wav');
+
+  showProgress('Finalizando…', 0.98);
+  const data = ff.FS('readFile', 'output.wav');
 
   // Clean up virtual FS
-  try { await ff.deleteFile(inputName); } catch (_) {}
-  try { await ff.deleteFile('output.wav'); } catch (_) {}
+  try { ff.FS('unlink', inputName); } catch (_) {}
+  try { ff.FS('unlink', 'output.wav'); } catch (_) {}
 
-  // Return as a proper File so the rest of the pipeline works unchanged
   const wavBlob = new Blob([data.buffer], { type: 'audio/wav' });
   const baseName = file.name.replace(/\.[^.]+$/, '') + '.wav';
   return new File([wavBlob], baseName, { type: 'audio/wav' });
@@ -288,12 +315,13 @@ async function handleFileSelected(file) {
     // AMR files need to be converted to WAV first (browsers don't support AMR)
     if (isAmrFile(file)) {
       fileDropZone.classList.add('has-file');
-      const updateStatus = (msg) => { fileDropText.textContent = msg; };
       try {
-        audioFile = await convertAmrToWav(file, updateStatus);
+        audioFile = await convertAmrToWav(file);
+        hideProgress();
         fileDropText.textContent = `✅ ${file.name} → convertido a WAV`;
       } catch (convErr) {
         console.error('AMR conversion failed:', convErr);
+        hideProgress();
         fileError.textContent = '❌ No se pudo convertir el archivo AMR. Comprueba tu conexión a internet e inténtalo de nuevo.';
         fileDropZone.classList.remove('has-file');
         fileDropZone.classList.add('invalid');

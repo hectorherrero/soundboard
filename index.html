@@ -81,6 +81,13 @@
                 <span class="file-drop-hint">MP3, OGG, WAV, M4A, AMR…</span>
               </div>
             </div>
+            <!-- AMR conversion progress bar (hidden by default) -->
+            <div id="amr-progress-wrap" class="amr-progress-wrap" hidden>
+              <div class="amr-progress-label" id="amr-progress-label">Cargando convertidor…</div>
+              <div class="amr-progress-track">
+                <div class="amr-progress-bar" id="amr-progress-bar" style="width:0%"></div>
+              </div>
+            </div>
             <span class="form-error" id="file-error" role="alert"></span>
           </div>
 
@@ -111,6 +118,8 @@
       </div>
     </dialog>
 
+    <!-- ffmpeg.wasm v0.11.6 (single-threaded UMD — no COOP/COEP headers needed) -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

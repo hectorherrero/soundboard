@@ -22,18 +22,28 @@
       </div>
     </header>
 
-    <!-- Main content -->
-    <main id="app-main">
-      <!-- Empty state (shown when no buttons) -->
-      <div id="empty-state" class="empty-state" aria-live="polite">
-        <div class="empty-icon" aria-hidden="true">🔈</div>
-        <p class="empty-title">No sounds yet</p>
-        <p class="empty-sub">Click the <strong>+</strong> button to add your first sound</p>
-      </div>
+     <!-- Main content -->
+     <main id="app-main">
+       <!-- Empty state (shown when no buttons) -->
+       <div id="empty-state" class="empty-state" aria-live="polite">
+         <div class="empty-icon" aria-hidden="true">🔈</div>
+         <p class="empty-title">No sounds yet</p>
+         <p class="empty-sub">Click the <strong>+</strong> button to add your first sound</p>
+       </div>
 
-      <!-- Button grid -->
-      <div id="button-grid" role="list" aria-label="Soundboard buttons"></div>
-    </main>
+       <!-- Button grid -->
+       <div id="button-grid" role="list" aria-label="Soundboard buttons"></div>
+
+       <!-- Text-to-Speech Input Area -->
+       <section id="tts-section" class="tts-section">
+         <h2 class="tts-title">Text to Speech</h2>
+         <div class="tts-input-group">
+           <input type="text" id="tts-input" placeholder="Enter text to convert to speech" maxlength="100">
+           <button id="tts-button" class="btn btn-primary">Generate Sound</button>
+         </div>
+         <p class="tts-hint">Enter text and click generate to create a spoken audio button</p>
+       </section>
+     </main>
 
     <!-- Floating Action Button -->
     <button id="add-btn" class="fab" aria-label="Add a new sound button" title="Add sound">
@@ -75,11 +85,11 @@
                 accept="audio/*"
                 required
               />
-              <div class="file-drop-content">
-                <span class="file-drop-icon" aria-hidden="true">🎵</span>
-                <span class="file-drop-text" id="file-drop-text">Choose or drop an audio file</span>
-                <span class="file-drop-hint">MP3, OGG, WAV, M4A…</span>
-              </div>
+               <div class="file-drop-content">
+                 <span class="file-drop-icon" aria-hidden="true">🎵</span>
+                 <span class="file-drop-text" id="file-drop-text">Choose or drop an audio file</span>
+                 <span class="file-drop-hint">MP3, OGG, WAV, M4A… (AMR may not be supported)</span>
+               </div>
             </div>
             <span class="form-error" id="file-error" role="alert"></span>
           </div>

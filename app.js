@@ -51,8 +51,8 @@ const DEFAULT_SOUNDS = [
 ];
 
 /* ============================================================
-   DOM REFERENCES
-   ============================================================ */
+    DOM REFERENCES
+    ============================================================ */
 const addBtn = document.getElementById('add-btn');
 const dialog = document.getElementById('add-dialog');
 const closeBtn = document.getElementById('dialog-close');
@@ -68,6 +68,11 @@ const fileError = document.getElementById('file-error');
 const sizeWarning = document.getElementById('size-warning');
 const buttonGrid = document.getElementById('button-grid');
 const emptyState = document.getElementById('empty-state');
+
+// TTS Elements
+const ttsSection = document.getElementById('tts-section');
+const ttsInput = document.getElementById('tts-input');
+const ttsButton = document.getElementById('tts-button');
 
 /* ============================================================
    TASK 7 — Modal Open / Close Logic
@@ -166,12 +171,24 @@ async function handleFileSelected(file) {
   fileDropZone.classList.remove('invalid', 'has-file');
   sizeWarning.hidden = true;
 
-  // Validate MIME type
-  if (!file.type.startsWith('audio/')) {
-    fileError.textContent = 'Please select a valid audio file.';
-    fileDropZone.classList.add('invalid');
-    return;
-  }
+   // Validate MIME type
+   if (!file.type.startsWith('audio/')) {
+     fileError.textContent = 'Please select a valid audio file.';
+     fileDropZone.classList.add('invalid');
+     return;
+   }
+   
+   // Warn about potentially unsupported formats
+   const unsupportedFormats = ['AMR'];
+   const fileExtension = file.name.split('.').pop().toUpperCase();
+   if (unsupportedFormats.includes(fileExtension)) {
+     fileError.textContent = `${fileExtension} format may not be supported in all browsers. Consider using MP3, WAV, or OGG instead.`;
+     fileDropZone.classList.add('warning');
+     // Don't return here - let user proceed if they want to try anyway
+   } else {
+     fileError.textContent = '';
+     fileDropZone.classList.remove('warning', 'invalid');
+   }
 
   // Size warning
   if (file.size > MAX_FILE_SIZE) {
@@ -339,37 +356,55 @@ const activeAudio = new Map();
  * @param {HTMLElement} btnEl
  */
 function playSound(config, btnEl) {
-  // Stop existing playback for this button
-  if (activeAudio.has(config.id)) {
-    const prev = activeAudio.get(config.id);
-    prev.pause();
-    prev.currentTime = 0;
-    activeAudio.delete(config.id);
-  }
-
-  const audio = new Audio(config.audioDataUrl);
-  activeAudio.set(config.id, audio);
-
-  // Visual feedback
-  btnEl.classList.add('playing');
-  audio.addEventListener('ended', () => {
-    btnEl.classList.remove('playing');
-    activeAudio.delete(config.id);
-  });
-  audio.addEventListener('pause', () => {
-    btnEl.classList.remove('playing');
-  });
-
-  audio.play().catch((err) => {
-    console.warn(`Playback failed for "${config.label}":`, err);
-    btnEl.classList.remove('playing');
-    activeAudio.delete(config.id);
-
-    // Help user debug local file access issues
-    if (config.audioDataUrl.startsWith('./resources')) {
-      alert(`Playback Error: ${err.message}\n\nThis is likely a browser security restriction for local files. Try opening the page through a local server or adding your own sounds using the "+" button.`);
+    // Check if this is a TTS marker
+    if (config.audioDataUrl.startsWith('tts_marker_')) {
+        playTTS(config, btnEl);
+        return;
     }
-  });
+    
+    // Stop existing playback for this button
+    if (activeAudio.has(config.id)) {
+        const prev = activeAudio.get(config.id);
+        prev.pause();
+        prev.currentTime = 0;
+        activeAudio.delete(config.id);
+    }
+
+    const audio = new Audio(config.audioDataUrl);
+    activeAudio.set(config.id, audio);
+
+    // Visual feedback
+    btnEl.classList.add('playing');
+    audio.addEventListener('ended', () => {
+        btnEl.classList.remove('playing');
+        activeAudio.delete(config.id);
+    });
+    audio.addEventListener('pause', () => {
+        btnEl.classList.remove('playing');
+    });
+
+    audio.play().catch((err) => {
+        console.warn(`Playback failed for "${config.label}":`, err);
+        btnEl.classList.remove('playing');
+        activeAudio.delete(config.id);
+
+        // Check if it's an unsupported format issue
+        const isUnsupportedFormat = err.message.includes('unsupported') || 
+                                    err.message.includes('format') ||
+                                    err.message.includes('codec') ||
+                                    err.name.includes('NotSupportedError');
+
+        // Help user debug local file access issues
+        if (config.audioDataUrl.startsWith('./resources')) {
+            alert(`Playback Error: ${err.message}\n\nThis is likely a browser security restriction for local files. Try opening the page through a local server or adding your own sounds using the "+" button.`);
+        } else if (isUnsupportedFormat) {
+            // Extract file extension for user-friendly message
+            const fileExtension = config.audioDataUrl.split('.').pop().toUpperCase();
+            alert(`Unsupported audio format: ${fileExtension}\n\nPlease use MP3, WAV, or OGG format instead. You can convert your audio file using online tools or audio editing software.`);
+        } else {
+            alert(`Playback failed: ${err.message}\n\nPlease try a different audio file.`);
+        }
+    });
 }
 
 /* ============================================================
@@ -467,9 +502,178 @@ function updateEmptyState() {
 }
 
 /* ============================================================
-   INIT — Bootstrap the app
-   ============================================================ */
+    TEXT-TO-SPEECH FUNCTIONALITY
+    ============================================================ */
+
+/**
+ * Converts text to speech using Web Speech API and returns audio data URL
+ * @param {string} text - The text to convert to speech
+ * @param {string} voice - Optional voice to use
+ * @returns {Promise<string>} - data URL of the generated audio
+ */
+async function textToSpeech(text, voice = 'default') {
+    return new Promise((resolve, reject) => {
+        // Check if speech synthesis is available
+        if (!('speechSynthesis' in window)) {
+            reject(new Error('Text-to-speech not supported in this browser'));
+            return;
+        }
+
+        // Create a new utterance
+        const utterance = new SpeechSynthesisUtterance(text);
+        
+        // Set voice if available and specified
+        if (voice !== 'default') {
+            const voices = window.speechSynthesis.getVoices();
+            const selectedVoice = voices.find(v => v.name === voice) || voices[0];
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
+        }
+        
+        // Set properties for better quality
+        utterance.rate = 1.0; // Normal speed
+        utterance.pitch = 1.0; // Normal pitch
+        utterance.volume = 1.0; // Full volume
+        
+        // We'll use the Web Speech API to generate audio
+        // Since we can't directly get the audio data from the API,
+        // we'll use a workaround by creating an AudioContext and connecting
+        // the speech synthesis to it, but this is complex and not well supported.
+        // 
+        // Instead, we'll use the simpler approach of using the SpeechSynthesisUtterance
+        // with a SpeechSynthesisEvent listener to capture when it starts/ends,
+        // but we still can't get the raw audio data.
+        //
+        // For a proper implementation, we'd need to use a server-side TTS service
+        // or a client-side library like recordrtc with speech synthesis.
+        //
+        // However, for this implementation, we'll simulate by creating a button
+        // that triggers speech synthesis directly when clicked, rather than
+        // trying to store generated audio.
+        
+        // Since we can't easily get audio data from Web Speech API,
+        // we'll store a special marker and handle playback differently
+        utterance.onend = () => {
+            resolve('tts_marker_' + btoa(text)); // Special marker for TTS
+        };
+        
+        utterance.onerror = (event) => {
+            reject(new Error(`Speech synthesis error: ${event.error}`));
+        };
+        
+        // Speak the utterance
+        window.speechSynthesis.speak(utterance);
+    });
+}
+
+/**
+ * Plays TTS-generated audio (special handling for TTS markers)
+ * @param {{ id: string, audioDataUrl: string }} config
+ * @param {HTMLElement} btnEl
+ */
+function playTTS(config, btnEl) {
+    // Stop any existing TTS playback for this button (though TTS doesn't really stack)
+    if (activeAudio.has(config.id)) {
+        const prev = activeAudio.get(config.id);
+        // For TTS, we just cancel speech
+        window.speechSynthesis.cancel();
+        activeAudio.delete(config.id);
+    }
+    
+    // Visual feedback
+    btnEl.classList.add('playing');
+    
+    // Extract the original text from the marker
+    const originalText = atob(config.audioDataUrl.split('_')[1]);
+    
+    // Create utterance and speak
+    const utterance = new SpeechSynthesisUtterance(originalText);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    
+    utterance.onend = () => {
+        btnEl.classList.remove('playing');
+        activeAudio.delete(config.id);
+    };
+    
+    utterance.onerror = () => {
+        btnEl.classList.remove('playing');
+        activeAudio.delete(config.id);
+    };
+    
+    // Store utterance reference so we can cancel if needed
+    activeAudio.set(config.id, utterance);
+    
+    // Speak
+    window.speechSynthesis.speak(utterance);
+}
+
+/* ============================================================
+    INIT — Bootstrap the app
+    ============================================================ */
 (function init() {
-  loadButtons();
-  updateEmptyState();
+    loadButtons();
+    updateEmptyState();
+    
+    // TTS Button Event Listener
+    ttsButton.addEventListener('click', async () => {
+        const text = ttsInput.value.trim();
+        if (!text) {
+            alert('Please enter some text to convert to speech');
+            return;
+        }
+        
+        if (text.length > 100) {
+            alert('Text is too long. Please limit to 100 characters.');
+            return;
+        }
+        
+        try {
+            // Show loading state
+            const originalButtonText = ttsButton.textContent;
+            ttsButton.textContent = 'Generating...';
+            ttsButton.disabled = true;
+            
+            // Convert text to speech (returns a marker)
+            const audioDataUrl = await textToSpeech(text);
+            
+            // Reset button
+            ttsButton.textContent = originalButtonText;
+            ttsButton.disabled = false;
+            
+            // Create button config
+            const config = {
+                id: `tts-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                label: text.length > 15 ? text.substring(0, 15) + '...' : text,
+                emoji: '🔊',
+                audioDataUrl: audioDataUrl, // This will be our special TTS marker
+            };
+            
+            // Add to state, render, persist
+            buttons.push(config);
+            saveButtons();
+            renderButton(config);
+            updateEmptyState();
+            
+            // Clear input
+            ttsInput.value = '';
+            
+        } catch (err) {
+            // Reset button state on error
+            ttsButton.textContent = 'Generate Sound';
+            ttsButton.disabled = false;
+            
+            alert(`Failed to generate speech: ${err.message}`);
+            console.error(err);
+        }
+    });
+    
+    // Enter key in TTS input
+    ttsInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            ttsButton.click();
+        }
+    });
 })();

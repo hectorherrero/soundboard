@@ -342,44 +342,70 @@ kbd {
 /* ============================================================
    FLOATING ACTION BUTTON — Task 5
    ============================================================ */
-.fab {
-  position: fixed;
-  bottom: var(--sp-8);
-  right: var(--sp-8);
-  width: 60px;
-  height: 60px;
-  border-radius: var(--r-full);
-  background: var(--grad-btn-1);
-  border: none;
-  color: #fff;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-fab);
-  z-index: 100;
-  transition: transform var(--t-slow), box-shadow var(--t-normal), filter var(--t-normal);
-}
+   .fab {
+     bottom: var(--sp-5);
+     right: var(--sp-5);
+     width: 52px;
+     height: 52px;
+   }
+ }
 
-.fab:hover {
-  transform: scale(1.12) rotate(90deg);
-  box-shadow: 0 8px 32px rgba(108 99 255 / 0.7);
-  filter: brightness(1.1);
-}
+ /* ============================================================
+    TEXT-TO-SPEECH SECTION
+    ============================================================ */
+ .tts-section {
+   background: var(--clr-surface);
+   border: 1px solid var(--clr-border);
+   border-radius: var(--r-lg);
+   padding: var(--sp-6);
+   margin-top: var(--sp-8);
+   box-shadow: var(--shadow-card);
+ }
 
-.fab:active {
-  transform: scale(0.95) rotate(90deg);
-}
+ .tts-title {
+   font-size: 1.1rem;
+   font-weight: 600;
+   margin-bottom: var(--sp-4);
+   color: var(--clr-text);
+   display: flex;
+   align-items: center;
+   gap: var(--sp-2);
+ }
 
-.fab-icon {
-  font-size: 2rem;
-  line-height: 1;
-  font-weight: 300;
-}
+ .tts-input-group {
+   display: flex;
+   gap: var(--sp-3);
+   flex-wrap: wrap;
+ }
 
-/* ============================================================
-   MODAL DIALOG — Task 6
-   ============================================================ */
+ #tts-input {
+   flex: 1 1 200px;
+   min-width: 150px;
+   padding: var(--sp-3) var(--sp-4);
+   border: 1px solid var(--clr-border);
+   border-radius: var(--r-md);
+   background: var(--clr-bg);
+   color: var(--clr-text);
+   font-family: var(--font-sans);
+   font-size: 0.95rem;
+ }
+
+ #tts-input:focus {
+   outline: none;
+   border-color: var(--clr-accent);
+   box-shadow: 0 0 0 3px rgba(108 99 255 / 0.2);
+ }
+
+ .tts-hint {
+   font-size: 0.8rem;
+   color: var(--clr-text-faint);
+   margin-top: var(--sp-2);
+   max-width: 400px;
+ }
+
+ /* ============================================================
+    RESPONSIVE
+    ============================================================ */
 dialog {
   padding: 0;
   border: none;
@@ -566,6 +592,16 @@ dialog[open] {
   border-radius: var(--r-md);
   padding: var(--sp-3) var(--sp-4);
   font-size: 0.82rem;
+  color: var(--clr-warning);
+}
+
+/* Format warning */
+.file-drop-zone.warning {
+  border-color: var(--clr-warning);
+  background: rgba(251 191 36 / 0.05);
+}
+
+.file-drop-zone.warning .file-drop-text {
   color: var(--clr-warning);
 }
 

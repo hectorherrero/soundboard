@@ -229,12 +229,18 @@ async function loadFfmpeg() {
     return _ffmpegInstance;
   }
 
+  // Guard: ffmpeg.min.js must be loaded via <script> tag
+  if (typeof FFmpeg === 'undefined' || typeof FFmpeg.createFFmpeg !== 'function') {
+    throw new Error('La librería ffmpeg.js no se cargó. Comprueba tu conexión a internet y recarga la página.');
+  }
+
   _ffmpegLoading = true;
   try {
-    const { createFFmpeg } = FFmpeg; // global from UMD script
+    const { createFFmpeg } = FFmpeg;
     const ff = createFFmpeg({
-      log: false,
-      corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
+      log: true,   // visible en DevTools → Console
+      // jsDelivr mirror — more reliable than unpkg on mobile networks
+      corePath: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
     });
     await ff.load();
     _ffmpegInstance = ff;
@@ -251,29 +257,48 @@ async function loadFfmpeg() {
  * @returns {Promise<File>} WAV file
  */
 async function convertAmrToWav(file) {
-  showProgress('Cargando convertidor de audio…', 0);
+  showProgress('Cargando convertidor de audio…', 0.02);
 
   const ff = await loadFfmpeg();
 
   // Wire up real-time progress: ffmpeg emits ratio 0–1 during transcode
   ff.setProgress(({ ratio }) => {
-    if (ratio > 0) {
-      showProgress('Convirtiendo AMR a WAV…', ratio);
+    const r = Number(ratio);
+    if (Number.isFinite(r) && r > 0) {
+      showProgress('Convirtiendo AMR a WAV…', Math.min(r, 0.95));
     }
   });
 
-  const { fetchFile } = FFmpeg;
-  const ext = file.name.split('.').pop();
+  // Use arrayBuffer() directly — more reliable than fetchFile() on mobile
+  const ext = (file.name.split('.').pop() || 'amr').toLowerCase();
   const inputName = 'input.' + ext;
 
   showProgress('Leyendo archivo…', 0.05);
-  ff.FS('writeFile', inputName, await fetchFile(file));
+  const rawBuffer = await file.arrayBuffer();
+  ff.FS('writeFile', inputName, new Uint8Array(rawBuffer));
 
   showProgress('Convirtiendo AMR a WAV…', 0.1);
-  await ff.run('-i', inputName, '-ar', '44100', '-ac', '1', 'output.wav');
+
+  // Attempt 1: force raw AMR-NB format (most common from Android recorders)
+  try {
+    await ff.run('-f', 'amrnb', '-i', inputName, '-ar', '8000', '-ac', '1', '-c:a', 'pcm_s16le', 'output.wav');
+  } catch (_firstErr) {
+    // Attempt 2: let ffmpeg auto-detect (handles 3GPP containers and AMR-WB)
+    showProgress('Reintentando con detección automática…', 0.3);
+    try {
+      await ff.run('-i', inputName, '-vn', '-ar', '8000', '-ac', '1', '-c:a', 'pcm_s16le', 'output.wav');
+    } catch (secondErr) {
+      throw new Error('ffmpeg no pudo decodificar el audio. ¿Tiene el codec AMR disponible? Detalle: ' + secondErr.message);
+    }
+  }
 
   showProgress('Finalizando…', 0.98);
-  const data = ff.FS('readFile', 'output.wav');
+  let data;
+  try {
+    data = ff.FS('readFile', 'output.wav');
+  } catch (readErr) {
+    throw new Error('La conversión no generó audio válido. Detalle: ' + readErr.message);
+  }
 
   // Clean up virtual FS
   try { ff.FS('unlink', inputName); } catch (_) {}
@@ -320,12 +345,13 @@ async function handleFileSelected(file) {
         hideProgress();
         fileDropText.textContent = `✅ ${file.name} → convertido a WAV`;
       } catch (convErr) {
-        console.error('AMR conversion failed:', convErr);
+        console.error('[AMR] Conversion failed:', convErr);
         hideProgress();
-        fileError.textContent = '❌ No se pudo convertir el archivo AMR. Comprueba tu conexión a internet e inténtalo de nuevo.';
+        // Show the real error so the user can report it
+        fileError.textContent = `❌ Error al convertir AMR: ${convErr.message || convErr}`;
         fileDropZone.classList.remove('has-file');
         fileDropZone.classList.add('invalid');
-        fileDropText.textContent = 'Choose or drop an audio file';
+        fileDropText.textContent = 'Elige o arrastra un archivo de audio';
         _pendingAudioDataUrl = null;
         return;
       }

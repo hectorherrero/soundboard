@@ -647,9 +647,219 @@ function updateEmptyState() {
 }
 
 /* ============================================================
+   TTS — Text-to-Speech Module
+   ============================================================ */
+
+const TTS_STORAGE_KEY = 'soundboard_tts_v1';
+
+/** @type {{ id: string, text: string }[]} */
+let ttsItems = [];
+
+/* TTS DOM refs */
+const ttsSection    = document.getElementById('tts-section');
+const ttsGrid       = document.getElementById('tts-grid');
+const ttsTextInput  = document.getElementById('tts-text-input');
+const ttsAddBtn     = document.getElementById('tts-add-btn');
+
+/** Cached reference to the preferred Spanish female voice. */
+let _spanishVoice = null;
+
+/**
+ * Scans available SpeechSynthesis voices and caches the best
+ * Spanish (Spain) female voice. Falls back to any es-ES voice.
+ */
+function findSpanishVoice() {
+  if (!('speechSynthesis' in window)) return null;
+
+  const voices = speechSynthesis.getVoices();
+  const esVoices = voices.filter(v =>
+    v.lang === 'es-ES' || v.lang === 'es_ES' || v.lang.startsWith('es-ES')
+  );
+
+  // Common female voice name fragments (Chrome, Edge, Firefox, Safari)
+  const femaleHints = [
+    'helena', 'mónica', 'monica', 'esperanza', 'elvira',
+    'lucía', 'lucia', 'paulina', 'female', 'mujer',
+  ];
+
+  const female = esVoices.find(v =>
+    femaleHints.some(h => v.name.toLowerCase().includes(h))
+  );
+
+  _spanishVoice = female || esVoices[0] || null;
+  return _spanishVoice;
+}
+
+/**
+ * Speaks the given text using the Web Speech API.
+ * Uses a Spanish (Spain) female voice when available.
+ * @param {string}      text  - Text to synthesise
+ * @param {HTMLElement} [btnEl] - Button element to animate while speaking
+ */
+function speak(text, btnEl) {
+  if (!('speechSynthesis' in window)) {
+    alert('Tu navegador no soporta síntesis de voz (Web Speech API).');
+    return;
+  }
+
+  // Stop anything currently playing
+  speechSynthesis.cancel();
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang  = 'es-ES';
+  utter.rate  = 1.0;
+  utter.pitch = 1.1; // slightly higher → sounds more feminine on voices without gender metadata
+
+  const voice = _spanishVoice || findSpanishVoice();
+  if (voice) utter.voice = voice;
+
+  if (btnEl) {
+    btnEl.classList.add('playing');
+    utter.onend   = () => btnEl.classList.remove('playing');
+    utter.onerror = () => btnEl.classList.remove('playing');
+  }
+
+  speechSynthesis.speak(utter);
+}
+
+/**
+ * Shows or hides the TTS section depending on whether there are items.
+ */
+function updateTtsSection() {
+  ttsSection.hidden = ttsItems.length === 0;
+}
+
+/**
+ * Renders a single TTS button into #tts-grid.
+ * @param {{ id: string, text: string }} item
+ */
+function renderTtsButton(item) {
+  const btn = document.createElement('button');
+  btn.className = 'tts-btn';
+  btn.id        = item.id;
+  btn.setAttribute('role', 'listitem');
+  btn.setAttribute('aria-label', `Reproducir: ${item.text}`);
+  btn.dataset.id = item.id;
+
+  btn.innerHTML = `
+    <span class="tts-btn-icon" aria-hidden="true">🔊</span>
+    <span class="tts-btn-text">${escapeHtml(item.text)}</span>
+    <button
+      class="delete-btn tts-delete-btn"
+      aria-label="Eliminar"
+      data-id="${item.id}"
+      title="Eliminar"
+      tabindex="-1"
+    >&times;</button>
+  `;
+
+  btn.addEventListener('click', (e) => {
+    if (e.target.closest('.delete-btn')) return;
+    speak(item.text, btn);
+  });
+
+  btn.querySelector('.delete-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    deleteTtsItem(item.id);
+  });
+
+  ttsGrid.appendChild(btn);
+  updateTtsSection();
+}
+
+/**
+ * Removes a TTS item from state, DOM, and localStorage.
+ * @param {string} id
+ */
+function deleteTtsItem(id) {
+  // Stop speech if this item is currently playing
+  speechSynthesis.cancel();
+
+  ttsItems = ttsItems.filter(t => t.id !== id);
+  saveTtsItems();
+
+  const el = document.getElementById(id);
+  if (el) {
+    el.style.transition = 'opacity 200ms ease, transform 200ms ease';
+    el.style.opacity    = '0';
+    el.style.transform  = 'translateX(20px)';
+    setTimeout(() => { el.remove(); updateTtsSection(); }, 210);
+  } else {
+    updateTtsSection();
+  }
+}
+
+/** Persists ttsItems to localStorage. */
+function saveTtsItems() {
+  try {
+    localStorage.setItem(TTS_STORAGE_KEY, JSON.stringify(ttsItems));
+  } catch (err) {
+    console.warn('TTS localStorage error:', err);
+  }
+}
+
+/** Loads TTS items from localStorage and renders them. */
+function loadTtsItems() {
+  try {
+    const raw = localStorage.getItem(TTS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        ttsItems = parsed;
+        ttsItems.forEach(renderTtsButton);
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to load TTS items:', err);
+  }
+  updateTtsSection();
+}
+
+/* ── TTS Add button ── */
+ttsAddBtn.addEventListener('click', () => {
+  const text = ttsTextInput.value.trim();
+  if (!text) {
+    ttsTextInput.focus();
+    return;
+  }
+
+  const item = {
+    id:   `tts-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    text,
+  };
+
+  ttsItems.push(item);
+  saveTtsItems();
+  renderTtsButton(item);
+
+  ttsTextInput.value = '';
+  ttsTextInput.focus();
+
+  // Scroll newly added button into view
+  const newBtn = document.getElementById(item.id);
+  if (newBtn) newBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+
+/* Enter (without Shift) submits; Shift+Enter adds a newline */
+ttsTextInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    ttsAddBtn.click();
+  }
+});
+
+/* Load voices — the event fires asynchronously in Chrome/Edge */
+if ('speechSynthesis' in window) {
+  findSpanishVoice(); // may already be populated in Firefox/Safari
+  speechSynthesis.addEventListener('voiceschanged', findSpanishVoice);
+}
+
+/* ============================================================
    INIT — Bootstrap the app
    ============================================================ */
 (function init() {
   loadButtons();
   updateEmptyState();
+  loadTtsItems();
 })();
+

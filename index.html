@@ -33,12 +33,40 @@
 
       <!-- Button grid -->
       <div id="button-grid" role="list" aria-label="Soundboard buttons"></div>
+
+      <!-- TTS Section (hidden until at least one entry exists) -->
+      <section id="tts-section" aria-label="Texto a voz" hidden>
+        <div class="section-divider">
+          <span class="section-divider-label">🗣️ Texto a Voz</span>
+        </div>
+        <div id="tts-grid" role="list" aria-label="Botones de texto a voz"></div>
+      </section>
     </main>
 
     <!-- Floating Action Button -->
     <button id="add-btn" class="fab" aria-label="Add a new sound button" title="Add sound">
       <span class="fab-icon" aria-hidden="true">+</span>
     </button>
+
+    <!-- TTS Fixed Bottom Panel -->
+    <section id="tts-panel" aria-label="Añadir texto a voz">
+      <div class="tts-panel-inner">
+        <label class="tts-panel-title" for="tts-text-input">🗣️ Texto a Voz — escribe y pulsa Añadir (o Enter)</label>
+        <div class="tts-input-row">
+          <textarea
+            id="tts-text-input"
+            class="tts-textarea"
+            placeholder="Escribe lo que quieres que se diga en voz alta…"
+            maxlength="500"
+            rows="2"
+            autocomplete="off"
+          ></textarea>
+          <button id="tts-add-btn" class="btn btn-primary tts-add-btn" type="button">
+            Añadir
+          </button>
+        </div>
+      </div>
+    </section>
 
     <!-- Add Sound Modal -->
     <dialog id="add-dialog" aria-labelledby="dialog-title" aria-modal="true">

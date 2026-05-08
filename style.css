@@ -759,3 +759,239 @@ dialog[open] {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ============================================================
+   TTS — SECTION DIVIDER
+   ============================================================ */
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  margin: var(--sp-10) 0 var(--sp-5);
+}
+
+.section-divider::before,
+.section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--clr-border);
+}
+
+.section-divider-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--clr-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   TTS — FULL-WIDTH BUTTONS
+   ============================================================ */
+#tts-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.tts-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  width: 100%;
+  padding: var(--sp-4) var(--sp-5);
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--r-md);
+  color: var(--clr-text);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--t-fast),
+    background   var(--t-fast),
+    transform    var(--t-fast),
+    box-shadow   var(--t-fast);
+  animation: btnAppear 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.tts-btn::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: var(--r-md) 0 0 var(--r-md);
+  background: var(--clr-accent);
+  opacity: 0;
+  transition: opacity var(--t-fast);
+}
+
+.tts-btn:hover {
+  border-color: var(--clr-accent);
+  background: rgba(108 99 255 / 0.07);
+  transform: translateX(4px);
+  box-shadow: 0 2px 12px rgba(108 99 255 / 0.15);
+}
+
+.tts-btn:hover::before {
+  opacity: 1;
+}
+
+.tts-btn:active {
+  transform: translateX(2px) scale(0.99);
+  transition-duration: 60ms;
+}
+
+.tts-btn.playing {
+  border-color: var(--clr-accent-2);
+  background: rgba(167 139 250 / 0.08);
+  animation: tts-playing-pulse 1s ease infinite alternate;
+}
+
+.tts-btn.playing::before {
+  opacity: 1;
+  background: var(--clr-accent-2);
+  animation: tts-bar-pulse 0.6s ease infinite alternate;
+}
+
+@keyframes tts-playing-pulse {
+  from { box-shadow: 0 0 0   rgba(167 139 250 / 0); }
+  to   { box-shadow: 0 0 20px rgba(167 139 250 / 0.25); }
+}
+
+@keyframes tts-bar-pulse {
+  from { width: 3px; }
+  to   { width: 6px; }
+}
+
+.tts-btn-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity var(--t-fast), transform var(--t-fast);
+}
+
+.tts-btn:hover .tts-btn-icon,
+.tts-btn.playing .tts-btn-icon {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+.tts-btn-text {
+  flex: 1;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* Reuse .delete-btn styles but position differently for TTS */
+.tts-delete-btn {
+  opacity: 0;
+  transform: scale(0.7);
+}
+
+.tts-btn:hover .tts-delete-btn,
+.tts-btn:focus-within .tts-delete-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ============================================================
+   TTS — FIXED BOTTOM INPUT PANEL
+   ============================================================ */
+#tts-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: rgba(22 27 39 / 0.97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--clr-border);
+  padding: var(--sp-3) var(--sp-6);
+  /* Leave room for the FAB on the right */
+  padding-right: calc(var(--sp-6) + 90px);
+}
+
+.tts-panel-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.tts-panel-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--clr-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: default;
+}
+
+.tts-input-row {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: flex-end;
+}
+
+.tts-textarea {
+  flex: 1;
+  background: var(--clr-bg);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--r-md);
+  color: var(--clr-text);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  padding: var(--sp-2) var(--sp-3);
+  resize: none;
+  outline: none;
+  line-height: 1.5;
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+
+.tts-textarea:focus {
+  border-color: var(--clr-accent);
+  box-shadow: 0 0 0 3px rgba(108 99 255 / 0.2);
+}
+
+.tts-add-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+  align-self: flex-end;
+}
+
+/* Adjust main bottom padding to account for the TTS panel */
+#app-main {
+  padding-bottom: calc(var(--sp-12) + 120px);
+}
+
+@media (max-width: 480px) {
+  #tts-panel {
+    padding: var(--sp-3) var(--sp-4);
+    padding-right: var(--sp-4);
+  }
+
+  .tts-input-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tts-add-btn {
+    align-self: flex-end;
+  }
+
+  .tts-btn {
+    font-size: 0.9rem;
+    padding: var(--sp-3) var(--sp-4);
+  }
+}
+

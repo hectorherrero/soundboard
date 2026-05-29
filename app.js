@@ -258,6 +258,102 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
+/* ============================================================
+   Theme Selector
+   ============================================================ */
+const THEME_STORAGE_KEY = 'soundboard_theme_v1';
+
+/** Map of theme id → swatch colour (for the button preview circle) */
+const THEMES = {
+  '':           '#6c63ff',
+  'lavanda':    '#c4b5fd',
+  'menta':      '#6ee7b7',
+  'melocoton':  '#fdba74',
+};
+
+/** Currently active theme id ('' = dark default) */
+let currentTheme = localStorage.getItem(THEME_STORAGE_KEY) ?? '';
+if (!(currentTheme in THEMES)) currentTheme = '';
+
+/**
+ * Applies a theme by setting data-theme on <html> and persists the choice.
+ * @param {string} themeId  '' | 'lavanda' | 'menta' | 'melocoton'
+ */
+function setTheme(themeId) {
+  if (!(themeId in THEMES)) return;
+  currentTheme = themeId;
+  localStorage.setItem(THEME_STORAGE_KEY, themeId);
+
+  const html = document.getElementById('html-root');
+  if (themeId) {
+    html.setAttribute('data-theme', themeId);
+  } else {
+    html.removeAttribute('data-theme');
+  }
+
+  // Update swatch preview in the button
+  const swatch = document.getElementById('theme-swatch');
+  if (swatch) {
+    // Grab the swatch colour from the chosen option's data-swatch attribute
+    const opt = document.querySelector(`.theme-option[data-theme="${themeId}"]`);
+    swatch.style.background = opt?.dataset.swatch || THEMES[themeId] || '#6c63ff';
+  }
+
+  // Mark active option
+  document.querySelectorAll('.theme-option').forEach(opt => {
+    const isActive = opt.dataset.theme === themeId;
+    opt.classList.toggle('active', isActive);
+    opt.setAttribute('aria-selected', String(isActive));
+  });
+}
+
+/** Toggles the theme dropdown open/closed. */
+function toggleThemeDropdown(open) {
+  const btn      = document.getElementById('theme-btn');
+  const dropdown = document.getElementById('theme-dropdown');
+  if (!btn || !dropdown) return;
+  const isOpen = open !== undefined ? open : dropdown.hidden;
+  dropdown.hidden = !isOpen;
+  btn.setAttribute('aria-expanded', String(isOpen));
+}
+
+// Wire up theme selector after DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  const themeBtn      = document.getElementById('theme-btn');
+  const themeDropdown = document.getElementById('theme-dropdown');
+
+  themeBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleThemeDropdown();
+  });
+
+  themeDropdown?.addEventListener('click', (e) => {
+    const opt = e.target.closest('.theme-option');
+    if (!opt) return;
+    setTheme(opt.dataset.theme);
+    toggleThemeDropdown(false);
+  });
+
+  // Close on outside click (already covered by lang's global listener but add own for safety)
+  document.addEventListener('click', () => toggleThemeDropdown(false));
+
+  // Keyboard navigation within theme dropdown
+  themeDropdown?.addEventListener('keydown', (e) => {
+    const opts = [...themeDropdown.querySelectorAll('.theme-option')];
+    const idx  = opts.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') { e.preventDefault(); opts[(idx + 1) % opts.length]?.focus(); }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); opts[(idx - 1 + opts.length) % opts.length]?.focus(); }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); document.activeElement?.click(); }
+    if (e.key === 'Escape') { toggleThemeDropdown(false); themeBtn?.focus(); }
+  });
+
+  // Apply saved theme on load
+  setTheme(currentTheme);
+});
+
+
+
+
 const STORAGE_KEY = 'soundboard_buttons_v1';
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB warning threshold
 

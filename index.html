@@ -9,6 +9,16 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
+    <!-- Apply saved theme before first paint to avoid flash -->
+    <script>
+      (function(){
+        var t = localStorage.getItem('soundboard_theme_v1');
+        var valid = ['lavanda','menta','melocoton'];
+        if (t && valid.indexOf(t) !== -1) {
+          document.getElementById('html-root').setAttribute('data-theme', t);
+        }
+      })();
+    </script>
   </head>
   <body>
     <!-- Header -->
@@ -19,6 +29,31 @@
           <h1 class="header-title">Soundboard</h1>
         </div>
         <p class="header-subtitle" data-i18n="subtitle">Haz clic para reproducir &bull; Pulsa <kbd>+</kbd> para añadir sonidos</p>
+        <!-- Theme selector -->
+        <div class="theme-selector" id="theme-selector">
+          <button class="theme-btn" id="theme-btn" aria-haspopup="listbox" aria-expanded="false" title="Cambiar tema">
+            <span class="theme-swatch" id="theme-swatch" aria-hidden="true" style="background:#6c63ff"></span>
+            <span class="theme-chevron" aria-hidden="true">▾</span>
+          </button>
+          <ul class="theme-dropdown" id="theme-dropdown" role="listbox" aria-label="Seleccionar tema" hidden>
+            <li class="theme-option" role="option" data-theme="" data-swatch="#6c63ff" data-label="Oscuro">
+              <span class="theme-option-swatch" style="background:linear-gradient(135deg,#6c63ff,#a78bfa)"></span>
+              🌑 Oscuro
+            </li>
+            <li class="theme-option" role="option" data-theme="lavanda" data-swatch="#c4b5fd" data-label="Lavanda">
+              <span class="theme-option-swatch" style="background:linear-gradient(135deg,#c4b5fd,#a78bfa)"></span>
+              🪻 Lavanda
+            </li>
+            <li class="theme-option" role="option" data-theme="menta" data-swatch="#6ee7b7" data-label="Menta">
+              <span class="theme-option-swatch" style="background:linear-gradient(135deg,#6ee7b7,#34d399)"></span>
+              🌿 Menta
+            </li>
+            <li class="theme-option" role="option" data-theme="melocoton" data-swatch="#fdba74" data-label="Melocotón">
+              <span class="theme-option-swatch" style="background:linear-gradient(135deg,#fdba74,#fb923c)"></span>
+              🍑 Melocotón
+            </li>
+          </ul>
+        </div>
         <!-- Language selector -->
         <div class="lang-selector" id="lang-selector">
           <button class="lang-btn" id="lang-btn" aria-haspopup="listbox" aria-expanded="false" title="Cambiar idioma">

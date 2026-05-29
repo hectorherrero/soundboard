@@ -7,8 +7,257 @@
 'use strict';
 
 /* ============================================================
-   CONSTANTS & STATE
+   i18n — Translations
    ============================================================ */
+const LANG_STORAGE_KEY = 'soundboard_lang_v1';
+
+/** Supported locales and their translations */
+const TRANSLATIONS = {
+  es: {
+    subtitle:            'Haz clic para reproducir \u2022 Pulsa <kbd>+</kbd> para añadir sonidos',
+    emptyTitle:          'Sin sonidos aún',
+    emptySub:            'Haz clic en el botón <strong>+</strong> para añadir tu primer sonido',
+    ttsSectionLabel:     '🗣️ Texto a Voz',
+    addBtnAria:          'Añadir nuevo sonido',
+    addBtnTitle:         'Añadir sonido',
+    ttsPanelTitle:       '🗣️ Texto a Voz — escribe y pulsa Añadir (o Enter)',
+    ttsPlaceholder:      'Escribe lo que quieres que se diga en voz alta…',
+    ttsAddBtn:           'Añadir',
+    dialogTitle:         'Añadir Nuevo Sonido',
+    dialogClose:         'Cerrar diálogo',
+    fieldLabel:          'Nombre del botón',
+    fieldLabelPlaceholder: 'Ej: Bocina, Boom, Risa…',
+    fieldFile:           'Archivo de audio',
+    fileDropText:        'Elige o arrastra un archivo de audio',
+    fieldEmoji:          'Emoji (opcional)',
+    sizeWarning:         '⚠️ Archivo grande detectado (>5 MB). El almacenamiento puede ser limitado.',
+    cancelBtn:           'Cancelar',
+    submitBtn:           'Añadir Sonido',
+    // JS-only strings
+    errorLabel:          'Por favor introduce un nombre para el botón.',
+    errorFile:           'Por favor selecciona un archivo de audio.',
+    errorInvalidFile:    'Por favor selecciona un archivo de audio válido.',
+    errorReadFile:       'No se pudo leer el archivo. Por favor inténtalo de nuevo.',
+    storageAlert:        '⚠️ Límite de almacenamiento alcanzado. Algunos sonidos puede que no se guarden al recargar.\nUsa archivos más pequeños (MP3 a 128 kbps recomendado).',
+    playbackError:       'Error de reproducción',
+    playbackLocalHint:   'Esto es probablemente una restricción de seguridad del navegador para archivos locales. Prueba abriendo la página a través de un servidor local o añade tus propios sonidos usando el botón "+".',
+    ttsNoSupport:        'Tu navegador no soporta síntesis de voz (Web Speech API).',
+    amrLoadConverter:    'Cargando convertidor de audio…',
+    amrReading:          'Leyendo archivo…',
+    amrConverting:       'Convirtiendo AMR a WAV…',
+    amrRetrying:         'Reintentando con detección automática…',
+    amrFinalizing:       'Finalizando…',
+    amrConvertedLabel:   '✅ {name} → convertido a WAV',
+    amrErrorConvert:     '❌ Error al convertir AMR: {msg}',
+    amrErrorRead:        'No se pudo leer el archivo. Por favor inténtalo de nuevo.',
+    langTitle:           'Cambiar idioma',
+  },
+  eu: {
+    subtitle:            'Egin klik erreproduzitzeko \u2022 Sakatu <kbd>+</kbd> soinuak gehitzeko',
+    emptyTitle:          'Oraindik ez dago soinurik',
+    emptySub:            'Sakatu <strong>+</strong> botoia zure lehen soinua gehitzeko',
+    ttsSectionLabel:     '🗣️ Testua Ahots Bihurtzea',
+    addBtnAria:          'Soinu berria gehitu',
+    addBtnTitle:         'Soinua gehitu',
+    ttsPanelTitle:       '🗣️ Testua Ahots Bihurtzea — idatzi eta sakatu Gehitu (edo Enter)',
+    ttsPlaceholder:      'Idatzi ozen esatea nahi duzuna…',
+    ttsAddBtn:           'Gehitu',
+    dialogTitle:         'Soinu Berria Gehitu',
+    dialogClose:         'Elkarrizketa itxi',
+    fieldLabel:          'Botoiaren izena',
+    fieldLabelPlaceholder: 'Adib.: Txirrina, Boom, Barre…',
+    fieldFile:           'Audio fitxategia',
+    fileDropText:        'Aukeratu edo arrastatu audio fitxategi bat',
+    fieldEmoji:          'Emoji (aukerakoa)',
+    sizeWarning:         '⚠️ Fitxategi handia hauteman da (>5 MB). Biltegiratzea mugatua izan daiteke.',
+    cancelBtn:           'Utzi',
+    submitBtn:           'Soinua Gehitu',
+    // JS-only strings
+    errorLabel:          'Mesedez sartu botoiaren izena.',
+    errorFile:           'Mesedez hautatu audio fitxategi bat.',
+    errorInvalidFile:    'Mesedez hautatu baliozko audio fitxategi bat.',
+    errorReadFile:       'Ezin izan da fitxategia irakurri. Saiatu berriro.',
+    storageAlert:        '⚠️ Biltegiratzeko muga gainditu da. Baliteke soinu batzuk ez gordetzea eguneratu ondoren.\nErabili fitxategi txikiagoak (128 kbps-ko MP3 gomendatua).',
+    playbackError:       'Erreprodukzio errorea',
+    playbackLocalHint:   'Hau ziurrenik nabigatzailearen segurtasun murrizketa bat da tokiko fitxategietarako. Saiatu orria tokiko zerbitzari baten bidez irekitzen edo gehitu zure soinuak "+" botoiaren bidez.',
+    ttsNoSupport:        'Zure nabigatzaileak ez du ahots-sintesia onartzen (Web Speech API).',
+    amrLoadConverter:    'Audio bihurgailua kargatzen…',
+    amrReading:          'Fitxategia irakurtzen…',
+    amrConverting:       'AMR WAV-era bihurtzen…',
+    amrRetrying:         'Detekzio automatikoarekin berriro saiatzen…',
+    amrFinalizing:       'Bukatzen…',
+    amrConvertedLabel:   '✅ {name} → WAV-era bihurtua',
+    amrErrorConvert:     '❌ AMR bihurtzeko errorea: {msg}',
+    amrErrorRead:        'Ezin izan da fitxategia irakurri. Saiatu berriro.',
+    langTitle:           'Hizkuntza aldatu',
+  },
+  en: {
+    subtitle:            'Click a button to play \u2022 Press <kbd>+</kbd> to add sounds',
+    emptyTitle:          'No sounds yet',
+    emptySub:            'Click the <strong>+</strong> button to add your first sound',
+    ttsSectionLabel:     '🗣️ Text to Speech',
+    addBtnAria:          'Add a new sound button',
+    addBtnTitle:         'Add sound',
+    ttsPanelTitle:       '🗣️ Text to Speech — type and click Add (or Enter)',
+    ttsPlaceholder:      'Type what you want to say aloud…',
+    ttsAddBtn:           'Add',
+    dialogTitle:         'Add New Sound',
+    dialogClose:         'Close dialog',
+    fieldLabel:          'Button Label',
+    fieldLabelPlaceholder: 'e.g. Air Horn, Boom, Laugh…',
+    fieldFile:           'Audio File',
+    fileDropText:        'Choose or drop an audio file',
+    fieldEmoji:          'Emoji (optional)',
+    sizeWarning:         '⚠️ Large file detected (>5 MB). Storage may be limited.',
+    cancelBtn:           'Cancel',
+    submitBtn:           'Add Sound',
+    // JS-only strings
+    errorLabel:          'Please enter a label for the button.',
+    errorFile:           'Please select an audio file.',
+    errorInvalidFile:    'Please select a valid audio file.',
+    errorReadFile:       'Could not read the file. Please try again.',
+    storageAlert:        '⚠️ Storage limit reached. Some sounds may not be saved after refresh.\nTry using smaller audio files (MP3 at 128 kbps recommended).',
+    playbackError:       'Playback Error',
+    playbackLocalHint:   'This is likely a browser security restriction for local files. Try opening the page through a local server or adding your own sounds using the "+" button.',
+    ttsNoSupport:        'Your browser does not support speech synthesis (Web Speech API).',
+    amrLoadConverter:    'Loading audio converter…',
+    amrReading:          'Reading file…',
+    amrConverting:       'Converting AMR to WAV…',
+    amrRetrying:         'Retrying with auto-detection…',
+    amrFinalizing:       'Finalizing…',
+    amrConvertedLabel:   '✅ {name} → converted to WAV',
+    amrErrorConvert:     '❌ AMR conversion error: {msg}',
+    amrErrorRead:        'Could not read the file. Please try again.',
+    langTitle:           'Change language',
+  },
+};
+
+/** The currently active locale (e.g. 'es', 'eu', 'en') */
+let currentLang = localStorage.getItem(LANG_STORAGE_KEY) || 'es';
+if (!TRANSLATIONS[currentLang]) currentLang = 'es';
+
+/**
+ * Returns the translation string for the given key in the current locale.
+ * @param {string} key
+ * @returns {string}
+ */
+function t(key) {
+  return (TRANSLATIONS[currentLang] || TRANSLATIONS.es)[key] || key;
+}
+
+/**
+ * Applies all translations to the document.
+ * Updates elements with data-i18n, data-i18n-placeholder and data-i18n-aria attributes.
+ */
+function applyTranslations() {
+  // Update <html lang>
+  document.getElementById('html-root').lang = currentLang;
+
+  // Text content
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const translation = t(key);
+    // Use innerHTML so we support <kbd>, <strong> tags in translations
+    el.innerHTML = translation;
+  });
+
+  // Placeholder attributes
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    el.placeholder = t(key);
+  });
+
+  // aria-label attributes
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+    const key = el.getAttribute('data-i18n-aria');
+    el.setAttribute('aria-label', t(key));
+  });
+
+  // title attributes
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const key = el.getAttribute('data-i18n-title');
+    el.setAttribute('title', t(key));
+  });
+
+  // Update the lang selector button label and tooltip
+  const langBtn = document.getElementById('lang-btn');
+  if (langBtn) langBtn.title = t('langTitle');
+
+  // Mark active option
+  document.querySelectorAll('.lang-option').forEach(opt => {
+    opt.setAttribute('aria-selected', opt.dataset.lang === currentLang ? 'true' : 'false');
+    opt.classList.toggle('active', opt.dataset.lang === currentLang);
+  });
+}
+
+/* ============================================================
+   Language Selector Logic
+   ============================================================ */
+
+/**
+ * Sets the active language, persists it, and applies all translations.
+ * @param {string} lang - locale code ('es' | 'eu' | 'en')
+ */
+function setLanguage(lang) {
+  if (!TRANSLATIONS[lang]) return;
+  currentLang = lang;
+  localStorage.setItem(LANG_STORAGE_KEY, lang);
+
+  // Update the button display
+  const option = document.querySelector(`.lang-option[data-lang="${lang}"]`);
+  if (option) {
+    document.getElementById('lang-flag').textContent = option.dataset.flag;
+    document.getElementById('lang-code').textContent = option.dataset.code;
+  }
+
+  applyTranslations();
+}
+
+/** Toggles the language dropdown open/closed. */
+function toggleLangDropdown(open) {
+  const btn      = document.getElementById('lang-btn');
+  const dropdown = document.getElementById('lang-dropdown');
+  if (!btn || !dropdown) return;
+  const isOpen = open !== undefined ? open : dropdown.hidden;
+  dropdown.hidden = !isOpen;
+  btn.setAttribute('aria-expanded', String(isOpen));
+}
+
+// Wire up the language selector after DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  const langBtn      = document.getElementById('lang-btn');
+  const langDropdown = document.getElementById('lang-dropdown');
+
+  langBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleLangDropdown();
+  });
+
+  langDropdown?.addEventListener('click', (e) => {
+    const opt = e.target.closest('.lang-option');
+    if (!opt) return;
+    setLanguage(opt.dataset.lang);
+    toggleLangDropdown(false);
+  });
+
+  // Close dropdown when clicking elsewhere
+  document.addEventListener('click', () => toggleLangDropdown(false));
+
+  // Keyboard navigation within dropdown
+  langDropdown?.addEventListener('keydown', (e) => {
+    const opts = [...langDropdown.querySelectorAll('.lang-option')];
+    const idx  = opts.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') { e.preventDefault(); opts[(idx + 1) % opts.length]?.focus(); }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); opts[(idx - 1 + opts.length) % opts.length]?.focus(); }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); document.activeElement?.click(); }
+    if (e.key === 'Escape')    { toggleLangDropdown(false); langBtn?.focus(); }
+  });
+
+  // Apply initial language (restores from localStorage or defaults to es)
+  setLanguage(currentLang);
+});
+
+
 const STORAGE_KEY = 'soundboard_buttons_v1';
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB warning threshold
 
@@ -104,7 +353,7 @@ function resetForm() {
   sizeWarning.hidden = true;
   fileDropZone.classList.remove('has-file', 'drag-over', 'invalid');
   labelInput.classList.remove('invalid');
-  fileDropText.textContent = 'Choose or drop an audio file';
+  fileDropText.textContent = t('fileDropText');
   _pendingAudioDataUrl = null;
   _pendingAudioMime = null;
 }
@@ -257,7 +506,7 @@ async function loadFfmpeg() {
  * @returns {Promise<File>} WAV file
  */
 async function convertAmrToWav(file) {
-  showProgress('Cargando convertidor de audio…', 0.02);
+  showProgress(t('amrLoadConverter'), 0.02);
 
   const ff = await loadFfmpeg();
 
@@ -265,7 +514,7 @@ async function convertAmrToWav(file) {
   ff.setProgress(({ ratio }) => {
     const r = Number(ratio);
     if (Number.isFinite(r) && r > 0) {
-      showProgress('Convirtiendo AMR a WAV…', Math.min(r, 0.95));
+      showProgress(t('amrConverting'), Math.min(r, 0.95));
     }
   });
 
@@ -273,18 +522,18 @@ async function convertAmrToWav(file) {
   const ext = (file.name.split('.').pop() || 'amr').toLowerCase();
   const inputName = 'input.' + ext;
 
-  showProgress('Leyendo archivo…', 0.05);
+  showProgress(t('amrReading'), 0.05);
   const rawBuffer = await file.arrayBuffer();
   ff.FS('writeFile', inputName, new Uint8Array(rawBuffer));
 
-  showProgress('Convirtiendo AMR a WAV…', 0.1);
+  showProgress(t('amrConverting'), 0.1);
 
   // Attempt 1: force raw AMR-NB format (most common from Android recorders)
   try {
     await ff.run('-f', 'amrnb', '-i', inputName, '-ar', '8000', '-ac', '1', '-c:a', 'pcm_s16le', 'output.wav');
   } catch (_firstErr) {
     // Attempt 2: let ffmpeg auto-detect (handles 3GPP containers and AMR-WB)
-    showProgress('Reintentando con detección automática…', 0.3);
+    showProgress(t('amrRetrying'), 0.3);
     try {
       await ff.run('-i', inputName, '-vn', '-ar', '8000', '-ac', '1', '-c:a', 'pcm_s16le', 'output.wav');
     } catch (secondErr) {
@@ -292,7 +541,7 @@ async function convertAmrToWav(file) {
     }
   }
 
-  showProgress('Finalizando…', 0.98);
+  showProgress(t('amrFinalizing'), 0.98);
   let data;
   try {
     data = ff.FS('readFile', 'output.wav');
@@ -324,7 +573,7 @@ async function handleFileSelected(file) {
 
   // Validate: must be a known audio type (standard or AMR)
   if (!isValidAudioFile(file)) {
-    fileError.textContent = 'Por favor selecciona un archivo de audio válido.';
+    fileError.textContent = t('errorInvalidFile');
     fileDropZone.classList.add('invalid');
     return;
   }
@@ -343,15 +592,14 @@ async function handleFileSelected(file) {
       try {
         audioFile = await convertAmrToWav(file);
         hideProgress();
-        fileDropText.textContent = `✅ ${file.name} → convertido a WAV`;
+        fileDropText.textContent = t('amrConvertedLabel').replace('{name}', file.name);
       } catch (convErr) {
         console.error('[AMR] Conversion failed:', convErr);
         hideProgress();
-        // Show the real error so the user can report it
-        fileError.textContent = `❌ Error al convertir AMR: ${convErr.message || convErr}`;
+        fileError.textContent = t('amrErrorConvert').replace('{msg}', convErr.message || convErr);
         fileDropZone.classList.remove('has-file');
         fileDropZone.classList.add('invalid');
-        fileDropText.textContent = 'Elige o arrastra un archivo de audio';
+        fileDropText.textContent = t('fileDropText');
         _pendingAudioDataUrl = null;
         return;
       }
@@ -364,7 +612,7 @@ async function handleFileSelected(file) {
       fileDropZone.classList.add('has-file');
     }
   } catch (err) {
-    fileError.textContent = 'No se pudo leer el archivo. Por favor inténtalo de nuevo.';
+    fileError.textContent = t('errorReadFile');
     _pendingAudioDataUrl = null;
   }
 }
@@ -406,7 +654,7 @@ function validateForm() {
   // Validate label
   const label = labelInput.value.trim();
   if (!label) {
-    labelError.textContent = 'Please enter a label for the button.';
+    labelError.textContent = t('errorLabel');
     labelInput.classList.add('invalid');
     valid = false;
   } else {
@@ -416,7 +664,7 @@ function validateForm() {
 
   // Validate audio file
   if (!_pendingAudioDataUrl) {
-    fileError.textContent = 'Please select an audio file.';
+    fileError.textContent = t('errorFile');
     fileDropZone.classList.add('invalid');
     valid = false;
   } else {
@@ -547,7 +795,7 @@ function playSound(config, btnEl) {
 
     // Help user debug local file access issues
     if (config.audioDataUrl.startsWith('./resources')) {
-      alert(`Playback Error: ${err.message}\n\nThis is likely a browser security restriction for local files. Try opening the page through a local server or adding your own sounds using the "+" button.`);
+      alert(`${t('playbackError')}: ${err.message}\n\n${t('playbackLocalHint')}`);
     }
   });
 }
@@ -565,7 +813,7 @@ function saveButtons() {
   } catch (err) {
     // Storage quota likely exceeded (large audio files)
     console.warn('localStorage quota exceeded — consider using fewer or smaller files.', err);
-    alert('⚠️ Storage limit reached. Some sounds may not be saved after refresh.\nTry using smaller audio files (MP3 at 128 kbps recommended).');
+    alert(t('storageAlert'));
   }
 }
 
@@ -698,7 +946,7 @@ function findSpanishVoice() {
  */
 function speak(text, btnEl) {
   if (!('speechSynthesis' in window)) {
-    alert('Tu navegador no soporta síntesis de voz (Web Speech API).');
+    alert(t('ttsNoSupport'));
     return;
   }
 

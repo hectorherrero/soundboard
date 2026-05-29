@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es" id="html-root">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -18,7 +18,20 @@
           <span class="header-icon" aria-hidden="true">🎛️</span>
           <h1 class="header-title">Soundboard</h1>
         </div>
-        <p class="header-subtitle">Click a button to play &bull; Press <kbd>+</kbd> to add sounds</p>
+        <p class="header-subtitle" data-i18n="subtitle">Haz clic para reproducir &bull; Pulsa <kbd>+</kbd> para añadir sonidos</p>
+        <!-- Language selector -->
+        <div class="lang-selector" id="lang-selector">
+          <button class="lang-btn" id="lang-btn" aria-haspopup="listbox" aria-expanded="false" title="Cambiar idioma">
+            <span class="lang-flag" id="lang-flag" aria-hidden="true">🇪🇸</span>
+            <span class="lang-code" id="lang-code">ES</span>
+            <span class="lang-chevron" aria-hidden="true">▾</span>
+          </button>
+          <ul class="lang-dropdown" id="lang-dropdown" role="listbox" aria-label="Seleccionar idioma" hidden>
+            <li class="lang-option" role="option" data-lang="es" data-flag="🇪🇸" data-code="ES">🇪🇸 Español</li>
+            <li class="lang-option" role="option" data-lang="eu" data-flag="🏴󠁥󠁳󠁰󠁶󠁿" data-code="EU">🏳️ Euskera</li>
+            <li class="lang-option" role="option" data-lang="en" data-flag="🇬🇧" data-code="EN">🇬🇧 English</li>
+          </ul>
+        </div>
       </div>
     </header>
 
@@ -27,8 +40,8 @@
       <!-- Empty state (shown when no buttons) -->
       <div id="empty-state" class="empty-state" aria-live="polite">
         <div class="empty-icon" aria-hidden="true">🔈</div>
-        <p class="empty-title">No sounds yet</p>
-        <p class="empty-sub">Click the <strong>+</strong> button to add your first sound</p>
+        <p class="empty-title" data-i18n="emptyTitle">Sin sonidos aún</p>
+        <p class="empty-sub" data-i18n="emptySub">Haz clic en el botón <strong>+</strong> para añadir tu primer sonido</p>
       </div>
 
       <!-- Button grid -->
@@ -37,31 +50,32 @@
       <!-- TTS Section (hidden until at least one entry exists) -->
       <section id="tts-section" aria-label="Texto a voz" hidden>
         <div class="section-divider">
-          <span class="section-divider-label">🗣️ Texto a Voz</span>
+          <span class="section-divider-label" data-i18n="ttsSectionLabel">🗣️ Texto a Voz</span>
         </div>
         <div id="tts-grid" role="list" aria-label="Botones de texto a voz"></div>
       </section>
     </main>
 
     <!-- Floating Action Button -->
-    <button id="add-btn" class="fab" aria-label="Add a new sound button" title="Add sound">
+    <button id="add-btn" class="fab" aria-label="Añadir nuevo sonido" title="Añadir sonido" data-i18n-aria="addBtnAria" data-i18n-title="addBtnTitle">
       <span class="fab-icon" aria-hidden="true">+</span>
     </button>
 
     <!-- TTS Fixed Bottom Panel -->
     <section id="tts-panel" aria-label="Añadir texto a voz">
       <div class="tts-panel-inner">
-        <label class="tts-panel-title" for="tts-text-input">🗣️ Texto a Voz — escribe y pulsa Añadir (o Enter)</label>
+        <label class="tts-panel-title" for="tts-text-input" data-i18n="ttsPanelTitle">🗣️ Texto a Voz — escribe y pulsa Añadir (o Enter)</label>
         <div class="tts-input-row">
           <textarea
             id="tts-text-input"
             class="tts-textarea"
+            data-i18n-placeholder="ttsPlaceholder"
             placeholder="Escribe lo que quieres que se diga en voz alta…"
             maxlength="500"
             rows="2"
             autocomplete="off"
           ></textarea>
-          <button id="tts-add-btn" class="btn btn-primary tts-add-btn" type="button">
+          <button id="tts-add-btn" class="btn btn-primary tts-add-btn" type="button" data-i18n="ttsAddBtn">
             Añadir
           </button>
         </div>
@@ -72,19 +86,20 @@
     <dialog id="add-dialog" aria-labelledby="dialog-title" aria-modal="true">
       <div class="dialog-card">
         <header class="dialog-header">
-          <h2 id="dialog-title" class="dialog-title">Add New Sound</h2>
-          <button id="dialog-close" class="dialog-close-btn" aria-label="Close dialog">&times;</button>
+          <h2 id="dialog-title" class="dialog-title" data-i18n="dialogTitle">Añadir Nuevo Sonido</h2>
+          <button id="dialog-close" class="dialog-close-btn" aria-label="Cerrar diálogo" data-i18n-aria="dialogClose">&times;</button>
         </header>
 
         <form id="add-form" novalidate>
           <!-- Label field -->
           <div class="form-group">
-            <label class="form-label" for="sound-label">Button Label</label>
+            <label class="form-label" for="sound-label" data-i18n="fieldLabel">Nombre del botón</label>
             <input
               id="sound-label"
               class="form-input"
               type="text"
-              placeholder="e.g. Air Horn, Boom, Laugh…"
+              data-i18n-placeholder="fieldLabelPlaceholder"
+              placeholder="Ej: Bocina, Boom, Risa…"
               maxlength="30"
               autocomplete="off"
               required
@@ -94,7 +109,7 @@
 
           <!-- File field -->
           <div class="form-group">
-            <label class="form-label" for="sound-file">Audio File</label>
+            <label class="form-label" for="sound-file" data-i18n="fieldFile">Archivo de audio</label>
             <div class="file-drop-zone" id="file-drop-zone">
               <input
                 id="sound-file"
@@ -105,7 +120,7 @@
               />
               <div class="file-drop-content">
                 <span class="file-drop-icon" aria-hidden="true">🎵</span>
-                <span class="file-drop-text" id="file-drop-text">Choose or drop an audio file</span>
+                <span class="file-drop-text" id="file-drop-text" data-i18n="fileDropText">Elige o arrastra un archivo de audio</span>
                 <span class="file-drop-hint">MP3, OGG, WAV, M4A, AMR…</span>
               </div>
             </div>
@@ -121,7 +136,7 @@
 
           <!-- Emoji picker (optional visual) -->
           <div class="form-group">
-            <label class="form-label" for="sound-emoji">Emoji (optional)</label>
+            <label class="form-label" for="sound-emoji" data-i18n="fieldEmoji">Emoji (opcional)</label>
             <input
               id="sound-emoji"
               class="form-input emoji-input"
@@ -133,14 +148,14 @@
           </div>
 
           <!-- Large file warning -->
-          <div id="size-warning" class="size-warning" hidden>
-            ⚠️ Large file detected (&gt;5 MB). Storage may be limited.
+          <div id="size-warning" class="size-warning" hidden data-i18n="sizeWarning">
+            ⚠️ Archivo grande detectado (&gt;5 MB). El almacenamiento puede ser limitado.
           </div>
 
           <!-- Actions -->
           <div class="dialog-actions">
-            <button type="button" id="cancel-btn" class="btn btn-ghost">Cancel</button>
-            <button type="submit" id="submit-btn" class="btn btn-primary">Add Sound</button>
+            <button type="button" id="cancel-btn" class="btn btn-ghost" data-i18n="cancelBtn">Cancelar</button>
+            <button type="submit" id="submit-btn" class="btn btn-primary" data-i18n="submitBtn">Añadir Sonido</button>
           </div>
         </form>
       </div>
